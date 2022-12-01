@@ -14,7 +14,7 @@
 package main
 
 import (
-	"github.com/carsonfeng/garra/analysis/passes/hello"
+	"github.com/carsonfeng/garra/analysis/passes/nilcheck"
 	"golang.org/x/tools/go/analysis/multichecker"
 )
 
@@ -24,6 +24,6 @@ func main() {
 	// a new analyzer, update the whitelist used by vet/all,
 	// or change its vet command to disable the new analyzer.
 	multichecker.Main(
-		hello.Analyzer,
+		nilcheck.Analyzer,
 	)
 }
