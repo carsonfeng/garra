@@ -5,15 +5,23 @@
 package nilcheck_test
 
 import (
-	"fmt"
 	"github.com/carsonfeng/garra/analysis/passes/nilcheck"
 	"golang.org/x/tools/go/analysis/analysistest"
 	"testing"
 )
 
-func Test(t *testing.T) {
-	result := analysistest.Run(t, analysistest.TestData(), nilcheck.Analyzer, "a")
-	for i, r := range result {
-		fmt.Printf("result %d: %+v", i, *r)
-	}
+func TestA(t *testing.T) {
+	analysistest.Run(t, analysistest.TestData(), nilcheck.Analyzer, "a")
+}
+
+func TestB(t *testing.T) {
+	analysistest.Run(t, analysistest.TestData(), nilcheck.Analyzer, "b")
+}
+
+func TestC(t *testing.T) {
+	analysistest.Run(t, analysistest.TestData(), nilcheck.Analyzer, "c")
+}
+
+func TestD(t *testing.T) {
+	analysistest.Run(t, analysistest.TestData(), nilcheck.Analyzer, "d")
 }
