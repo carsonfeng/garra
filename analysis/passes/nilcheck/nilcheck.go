@@ -15,7 +15,7 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
-const DEBUG = true
+const DEBUG = false
 const Doc = `[Ziipin-Best-Practices] check if object is used with not-nil error
 
 
