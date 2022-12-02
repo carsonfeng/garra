@@ -50,13 +50,6 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 	if DEBUG && "NilObjFunc" != fn.Name() {
 		return
 	}
-	reportf := func(category string, pos token.Pos, format string, args ...interface{}) {
-		pass.Report(analysis.Diagnostic{
-			Pos:      pos,
-			Category: category,
-			Message:  fmt.Sprintf(format, args...),
-		})
-	}
 
 	var visit func(blockIndex int, b *ssa.BasicBlock)
 
@@ -119,8 +112,17 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 				for _, arg := range call.Call.Args {
 					if ext, ok3 := arg.(*ssa.Extract); ok3 {
 						if m[ext] {
-							reportf("Ziipin-Garra-nilcheck", call.Pos(), fmt.Sprintf("[Ziipin-Best-Practices] call object's method/field with non-nil error will always panic. [Garra ver: %s]", common.Version))
+							common.Reportf(pass, "Ziipin-Garra-nilcheck", call.Pos(), fmt.Sprintf("call unchecked object's method with non-nil error will always panic."))
 						}
+					}
+				}
+			}
+
+			if fieldAddr, ok := instr2.(*ssa.FieldAddr); ok {
+				m := findLastCallExtracts(originCallBlock.Instrs)
+				if ext, ok2 := fieldAddr.X.(*ssa.Extract); ok2 {
+					if m[ext] {
+						common.Reportf(pass, "Ziipin-Garra-nilcheck", instr2.Pos(), fmt.Sprintf("fetch unchecked object's field with non-nil error will always panic."))
 					}
 				}
 			}
