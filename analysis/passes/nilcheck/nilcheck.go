@@ -152,7 +152,7 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 					for _, arg := range call.Call.Args {
 						if ext, ok3 := arg.(*ssa.Extract); ok3 && blockIndex-2 >= 0 && lastIf[blockIndex-2] {
 							if extractMap[blockIndex-2][ext] {
-								reportf("Ziipin-Garra-nilcheck", call.Pos(), "[Ziipin-Best-Practices] call object method/field with non-nil error will always panic")
+								reportf("Ziipin-Garra-nilcheck", call.Pos(), "[Ziipin-Best-Practices] call object's method/field with non-nil error will always panic")
 							}
 						}
 					}
