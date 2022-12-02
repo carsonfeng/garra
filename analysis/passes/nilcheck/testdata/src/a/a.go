@@ -12,7 +12,7 @@ func GetUser() (*User, int, error) {
 	return nil, 0, nil
 }
 
-func NilObjFunc() {
+func NilObjFunc2() {
 	var temp string
 	user2, t, err := GetUser()
 	if nil != err {
