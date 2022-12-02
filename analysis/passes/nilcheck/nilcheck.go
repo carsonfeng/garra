@@ -7,6 +7,7 @@ package nilcheck
 
 import (
 	"fmt"
+	"github.com/carsonfeng/garra/common"
 	"go/constant"
 	"go/token"
 	"golang.org/x/tools/go/analysis"
@@ -118,7 +119,7 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 				for _, arg := range call.Call.Args {
 					if ext, ok3 := arg.(*ssa.Extract); ok3 {
 						if m[ext] {
-							reportf("Ziipin-Garra-nilcheck", call.Pos(), "[Ziipin-Best-Practices] call object's method/field with non-nil error will always panic")
+							reportf("Ziipin-Garra-nilcheck", call.Pos(), fmt.Sprintf("[Ziipin-Best-Practices] call object's method/field with non-nil error will always panic. [Garra ver: %s]", common.Version))
 						}
 					}
 				}
