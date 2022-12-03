@@ -61,7 +61,7 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 	for _, b := range fn.Blocks {
 		for _, instr := range b.Instrs {
 			if _, ok := instr.(*ssa.Go); ok {
-				common.Reportf(pass, "Ziipin-Sawa-Go", instr.Pos(), fmt.Sprintf("如无特殊情况，协程请用services.AsynHandle或daos.AsynHandle方法来调用，不要自己直接go"))
+				common.Reportf(pass, "Ziipin-Sawa-GoRoutine", instr.Pos(), fmt.Sprintf("如无特殊情况，协程请用services.AsynHandle或daos.AsynHandle方法来调用，不要自己直接go"))
 			}
 		}
 	}
