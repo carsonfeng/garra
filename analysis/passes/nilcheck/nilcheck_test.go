@@ -25,3 +25,7 @@ func TestC(t *testing.T) {
 func TestD(t *testing.T) {
 	analysistest.Run(t, analysistest.TestData(), nilcheck.Analyzer, "d")
 }
+
+func TestE(t *testing.T) {
+	analysistest.Run(t, analysistest.TestData(), nilcheck.Analyzer, "e")
+}
