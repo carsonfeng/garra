@@ -1,4 +1,4 @@
-export TAGNAME := 1.0.5
+export TAGNAME := 1.0.6
 
 tag:
 	git tag release-$(TAGNAME) -m $(TAGNAME)
