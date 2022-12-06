@@ -7,13 +7,35 @@
 -`Go 1.10` and above.
 
 ## Features
-- 1. not nil err but object used checker
-  - example:
-    - user, err := svc.User().GetUserCache(uid)
-    - if nil != err{
-      - printf("err occurs)
-    - }
-    - user.GetUid() // <-- fail! haven't check user
+- `nilcheck` not nil err but object used checker
+  - Example:
+  ``` go
+    user, err := svc.User().GetUserCache(uid)
+    if nil != err{
+      printf("err occurs)
+    }
+    user.GetUid() // <-- fail! haven't check user
+  ```
+
+- `sawago` go routine specification in Ziipin Sawa.
+  - Example:
+    - SUGGEST:
+    ``` go
+      func (dao *UserService)testFunc(){
+        asynHandle(func(svc *Svc) {
+          //XXXX
+        })
+      }
+    ```
+
+    - NOT SUGGEST:
+    ``` go
+      func (dao *UserService)testFunc(){
+        go func() {
+          //XXX
+        }
+      }
+    ```
 
 ## Installation
 

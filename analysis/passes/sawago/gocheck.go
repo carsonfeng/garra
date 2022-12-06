@@ -18,7 +18,7 @@ const Doc = `[Ziipin-Best-Practices] 如无特殊情况，请用services.AsynHan
 
 example:
 
-Suggest:
+SUGGEST:
 func (dao *UserService)testFunc(){
 	asynHandle(func(svc *Svc) {
 		XXXX
