@@ -1,6 +1,6 @@
 # Garra
 
-`Garra` is a `Go` best practices `checker` based on go vet. 
+`Garra` is a `Go` best practices `checker` based on go vet.
 
 ## Requirements
 
