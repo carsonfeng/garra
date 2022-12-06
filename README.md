@@ -17,12 +17,11 @@
 
 ## Installation
 
-- XX
+- go install -a github.com/carsonfeng/garra@latest
 
 ## Usage
 
-- Start - Hello World
-
+- go vet -vettool=$(which garra) ./...
 
 ## Contributing
 
@@ -30,4 +29,4 @@ The project welcomes all contributors. We appreciate your help!
 
 ## Communication:
 
-- XX
+- jiayaf@gmail.com
