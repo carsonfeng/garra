@@ -54,7 +54,7 @@ func checkCallObj(pass *analysis.Pass, call *ast.CallExpr, indexType map[string]
 	//check
 	if selExpr, ok := call.Fun.(*ast.SelectorExpr); ok {
 		funcName := selExpr.Sel.Name
-		if funcName == "In" {
+		if "In" == funcName || "NotIn" == funcName {
 			if len(call.Args) > 1 {
 				if basicLit, ok2 := call.Args[0].(*ast.BasicLit); ok2 {
 					field := strings.Trim(basicLit.Value, "\"")

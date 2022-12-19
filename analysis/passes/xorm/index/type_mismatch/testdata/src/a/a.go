@@ -27,3 +27,21 @@ func TestFunc() {
 	}
 	print("ok")
 }
+
+func TestFuncB(rids []int) {
+	//var s = dao.Db()
+	rows := make([]*models.Statistic, 0, len(rids))
+	if err := dao.Db().Where("room_id = ?", 123).NotIn("room_id", rids).Find(&rows); err != nil {
+		print("err")
+	}
+	print("ok")
+}
+
+func TestFuncC(uids []string) {
+	//var s = dao.Db()
+	rows := make([]*models.Statistic, 0, len(uids))
+	if err := dao.Db().In("uid", uids).Find(&rows); err != nil {
+		print("err")
+	}
+	print("ok")
+}
