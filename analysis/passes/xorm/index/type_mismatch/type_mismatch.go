@@ -64,9 +64,8 @@ func checkCallObj(pass *analysis.Pass, call *ast.CallExpr, indexType map[string]
 						if sli, ok3 := tav.Type.(*types.Slice); ok3 {
 							argType := sli.Elem().String()
 							if argType != checkType {
-								//
 								common.Reportf(pass, "Ziipin-Garra-XORM-Index-TypeMismatch", call.Args[1].Pos(),
-									fmt.Sprintf("XORM Index Type Mismatch. Op: %s; Indexd Field: %s; Type: %s, VarType: %s", "In", field, checkType, argType))
+									fmt.Sprintf("%s类型的字段索引(%s)，如果%s函数传入参数是%s类型，索引不会生效。", checkType, field, funcName, argType))
 							}
 						}
 					}
