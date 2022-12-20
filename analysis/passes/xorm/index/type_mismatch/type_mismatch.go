@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"github.com/carsonfeng/garra/common"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
+	"regexp"
 	"strings"
 )
 
@@ -50,6 +52,83 @@ func snakeString(s string) string {
 	return strings.ToLower(string(data[:]))
 }
 
+func parseWhereArgType(pass *analysis.Pass, call *ast.CallExpr) (r map[string]string) {
+	if nil == call || 0 == len(call.Args) {
+		return
+	}
+	r = map[string]string{}
+
+	getArgType := func(expr ast.Expr) (_r string) {
+		switch x2 := expr.(type) {
+		case *ast.BasicLit:
+			if x2.Kind == token.INT {
+				_r = "int"
+			} else if x2.Kind == token.STRING {
+				_r = "string"
+			}
+		case *ast.Ident:
+			_r = pass.TypesInfo.Types[expr].Type.String()
+		}
+		return
+	}
+
+	switch x := call.Args[0].(type) {
+	case *ast.CompositeLit:
+		//eg. Where(builder.Eq{"room_id": 235, "uid": 33})
+		for _, elt := range x.Elts {
+			if kv, ok := elt.(*ast.KeyValueExpr); ok {
+				key := ""
+
+				if k, ok1 := kv.Key.(*ast.BasicLit); ok1 {
+					key = strings.ReplaceAll(k.Value, "\"", "")
+				} else {
+					continue
+				}
+				valueType := getArgType(kv.Value)
+
+				if valueType != "" {
+					r[key] = valueType
+				}
+			}
+
+		}
+	case *ast.BasicLit:
+		//eg. Where("room_id = ?", 123)
+		if 2 != len(call.Args) {
+			break
+		}
+		arg0 := x.Value
+
+		inputVars := func(a string) (_r []string) {
+			sli := regexp.MustCompile(`["=<>!\s+]`).Split(a, -1)
+			var sli2 []string
+			for _, item := range sli {
+				if "" != item {
+					sli2 = append(sli2, item)
+				}
+			}
+			for i, item := range sli2 {
+				if "?" == item && i > 0 {
+					if v := sli2[i-1]; v != "" {
+						_r = append(_r, v)
+					}
+				}
+			}
+			return
+		}(arg0)
+
+		if len(inputVars) > 0 && len(inputVars) == len(call.Args)-1 {
+			for i := 1; i < len(call.Args); i++ {
+				key := inputVars[i-1]
+				if typ := getArgType(call.Args[i]); "" != typ {
+					r[key] = typ
+				}
+			}
+		}
+	}
+	return
+}
+
 func checkCallObj(pass *analysis.Pass, call *ast.CallExpr, indexType map[string]string) {
 	//check
 	if selExpr, ok := call.Fun.(*ast.SelectorExpr); ok {
@@ -63,15 +142,23 @@ func checkCallObj(pass *analysis.Pass, call *ast.CallExpr, indexType map[string]
 						tav := pass.TypesInfo.Types[call.Args[1]]
 						if sli, ok3 := tav.Type.(*types.Slice); ok3 {
 							argType := sli.Elem().String()
-							if argType != checkType {
+							if checkType == "string" && argType == "int" {
 								common.Reportf(pass, "Ziipin-Garra-XORM-Index-TypeMismatch", call.Args[1].Pos(),
-									fmt.Sprintf("%s类型的字段索引(%s)，如果%s函数传入参数是%s类型，索引不会生效。", checkType, field, funcName, argType))
+									fmt.Sprintf("%s类型的字段索引(%s)，%s函数传入参数是%s类型，索引不会生效。", checkType, field, funcName, argType))
 							}
 						}
 					}
 				}
 			}
-
+		} else if "Where" == funcName || "And" == funcName || "Or" == funcName {
+			if argTyp := parseWhereArgType(pass, call); len(argTyp) > 0 {
+				for k, v := range argTyp {
+					if "string" == indexType[k] && "int" == v {
+						common.Reportf(pass, "Ziipin-Garra-XORM-Index-TypeMismatch", call.Pos(),
+							fmt.Sprintf("%s类型的字段索引(%s)，%s函数传入参数是%s类型，索引不会生效。", indexType[k], k, funcName, v))
+					}
+				}
+			}
 		}
 		if _callExp, ok2 := selExpr.X.(*ast.CallExpr); ok2 {
 			checkCallObj(pass, _callExp, indexType)
