@@ -6,15 +6,6 @@ import (
 	"models"
 )
 
-//func TestFunc2(rids [3]string) {
-//	var s *xorm.Session
-//	rows := make([]*models.Statistic, 0, len(rids))
-//	if err := s.In("room_id", rids).Find(&rows); err != nil {
-//		print("err")
-//	}
-//	print("ok")
-//}
-
 type name struct {
 	A int `json:"a,omitempty"`
 }
@@ -67,7 +58,6 @@ func TestFuncC(uids []string) {
 	}
 	print("ok")
 }
-
 func TestFuncWhereAndOr(rids []int) {
 	//var s = dao.Db()
 	rows := make([]*models.Statistic, 0, len(rids))
@@ -75,4 +65,19 @@ func TestFuncWhereAndOr(rids []int) {
 		print("err")
 	}
 	print("ok")
+}
+
+func TestFuncGet(rids []int) {
+	var s = dao.Db()
+	row := new(models.Statistic)
+	if _, err := s.Where("room_id = ?", 123).Get(&row); err != nil {
+		print("err")
+	}
+	print("ok")
+}
+
+func TestFuncCount(rids []int) {
+	var s = dao.Db()
+	row := new(models.Statistic)
+	_, _ = s.Where("room_id = ?", 123).Sums(&row)
 }

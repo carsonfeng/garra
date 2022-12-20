@@ -167,6 +167,8 @@ func checkCallObj(pass *analysis.Pass, call *ast.CallExpr, indexType map[string]
 
 }
 
+var ops = map[string]int{"Find": 1, "FindAndCount": 1, "Get": 1, "Count": 1, "SumInt": 1, "Sums": 1, "SumsInt": 1}
+
 func run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
@@ -177,8 +179,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		callExpr := n.(*ast.CallExpr)
+
 		if selectExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-			if !(selectExpr.Sel.Name == "Find" || selectExpr.Sel.Name == "FindAndCount" || selectExpr.Sel.Name == "Get") {
+			if ops[selectExpr.Sel.Name] == 0 {
 				return
 			}
 		} else {
@@ -195,28 +198,42 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			if pointer, ok := tav.Type.(*types.Pointer); !ok {
 				return
 			} else {
+				procStruct := func(struct2 *types.Struct) {
+					for i := 0; i < struct2.NumFields(); i++ {
+						lowerTag := strings.ToLower(struct2.Tag(i))
+						if strings.Contains(lowerTag, "xorm") &&
+							(strings.Contains(lowerTag, "index") ||
+								strings.Contains(lowerTag, "unique") ||
+								strings.Contains(lowerTag, "pk ")) {
+							field := snakeString(struct2.Field(i).Name())
+							typ := ""
+							if strings.Contains(lowerTag, "varchar") {
+								typ = "string"
+							} else if strings.Contains(lowerTag, "int") {
+								typ = "int"
+							}
+							if "" != typ {
+								r[field] = typ
+							}
+						}
+					}
+				}
+
 				switch x := pointer.Elem().(type) {
+
 				case *types.Slice:
 					if pointer2, ok2 := x.Elem().(*types.Pointer); ok2 {
 						if named, ok3 := pointer2.Elem().(*types.Named); ok3 {
 							if struct2, ok4 := named.Underlying().(*types.Struct); ok4 {
-								for i := 0; i < struct2.NumFields(); i++ {
-									lowerTag := strings.ToLower(struct2.Tag(i))
-									if strings.Contains(lowerTag, "xorm") && strings.Contains(lowerTag, "index") {
-										field := snakeString(struct2.Field(i).Name())
-										typ := ""
-										if strings.Contains(lowerTag, "varchar") {
-											typ = "string"
-										} else if strings.Contains(lowerTag, "int") {
-											typ = "int"
-										}
-										if "" != typ {
-											r[field] = typ
-										}
-									}
-								}
+								procStruct(struct2)
 							}
+						}
+					}
 
+				case *types.Pointer:
+					if named, ok2 := x.Elem().(*types.Named); ok2 {
+						if struct2, ok3 := named.Underlying().(*types.Struct); ok3 {
+							procStruct(struct2)
 						}
 					}
 				}

@@ -248,6 +248,10 @@ func (session *Session) NotIn(column string, args ...interface{}) *Session {
 //	return nil
 //}
 
+func (session *Session) Get(bean interface{}) (bool, error) {
+	return true, nil
+}
+
 // Find retrieve records from table, condiBeans's non-empty fields
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
@@ -272,6 +276,24 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 //	return nil
 //}
 
-//func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
-//	return nil
-//}
+//	func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
+//		return nil
+//	}
+func (session *Session) Count(bean ...interface{}) (int64, error) {
+	return 0, nil
+}
+
+// SumInt call sum some column. bean's non-empty fields are conditions.
+func (session *Session) SumInt(bean interface{}, columnName string) (res int64, err error) {
+	return 0, nil
+}
+
+// Sums call sum some columns. bean's non-empty fields are conditions.
+func (session *Session) Sums(bean interface{}, columnNames ...string) ([]float64, error) {
+	return nil, nil
+}
+
+// SumsInt sum specify columns and return as []int64 instead of []float64
+func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int64, error) {
+	return nil, nil
+}
