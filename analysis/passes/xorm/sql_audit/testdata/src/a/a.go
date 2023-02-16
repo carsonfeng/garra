@@ -5,24 +5,46 @@ import (
 	"models"
 )
 
-type name struct {
-	A int `json:"a,omitempty"`
+type Temp struct {
 }
 
-func TestFuncA() {
+func (t *Temp) Update(b interface{}) {
+	return
+}
+
+func TestFuncRejectA() {
 	//var s = dao.Db()
-	rows := make([]*models.Statistic, 0, 3)
-	if _, err := dao.Db().Update(&rows); err != nil {
+	if _, err := dao.Db().Update(&models.Statistic{}); err != nil {
 		print("err")
 	}
 	print("ok")
 }
 
-func TestFuncB() {
+func TestFuncRejectB() {
 	//var s = dao.Db()
-	rows := make([]*models.Statistic, 0, 3)
-	if _, err := dao.Db().Delete(&rows); err != nil {
+	if _, err := dao.Db().Delete(&models.Statistic{}); err != nil {
 		print("err")
 	}
 	print("ok")
+}
+
+func TestFuncRejectC() {
+	session := dao.Db()
+	session.Update(&models.Statistic{})
+}
+
+func TestFuncPassC() {
+	session := dao.Db().Id(1)
+	session.Update(&models.Statistic{})
+}
+
+func TestFuncPassD() {
+	t := Temp{}
+	t.Update(&models.Statistic{})
+}
+
+func TestFuncPassE() {
+	session := dao.Db().Id(1)
+	session = session.Incr("fail", 1)
+	session.Update(&models.Statistic{})
 }

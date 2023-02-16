@@ -312,3 +312,13 @@ func (session *Session) Sums(bean interface{}, columnNames ...string) ([]float64
 func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int64, error) {
 	return nil, nil
 }
+
+// Incr provides a query string like "count = count + 1"
+func (session *Session) Incr(column string, arg ...interface{}) *Session {
+	return session
+}
+
+// Decr provides a query string like "count = count - 1"
+func (session *Session) Decr(column string, arg ...interface{}) *Session {
+	return session
+}

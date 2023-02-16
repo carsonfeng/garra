@@ -9,17 +9,15 @@ import (
 	"fmt"
 	"github.com/carsonfeng/garra/common"
 	"go/ast"
-	"go/token"
 	"go/types"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
-	"regexp"
 	"strings"
 )
 
 const DEBUG = true
-const Doc = `[Ziipin-Best-Practices] SQL审核：表update/delete操作没有指定要具体列，会导致全表变更，请核对`
+const Doc = `SQL审核：表update/delete操作没有指定要具体列，会导致全表变更，请核对`
 
 var Analyzer = &analysis.Analyzer{
 	Name:     "xorm_sql_audit",
@@ -29,115 +27,19 @@ var Analyzer = &analysis.Analyzer{
 	Run: run,
 }
 
-/**
- * snake string
- * @description XxYy to xx_yy , XxYY to xx_y_y
- * @param s input string
- * @return string
- **/
-func snakeString(s string) string {
-	data := make([]byte, 0, len(s)*2)
-	j := false
-	num := len(s)
-	for i := 0; i < num; i++ {
-		d := s[i]
-		if i > 0 && d >= 'A' && d <= 'Z' && j {
-			data = append(data, '_')
-		}
-		if d != '_' {
-			j = true
-		}
-		data = append(data, d)
-	}
-	return strings.ToLower(string(data[:]))
-}
-
-func parseWhereArgType(pass *analysis.Pass, call *ast.CallExpr) (r map[string]string) {
-	if nil == call || 0 == len(call.Args) {
-		return
-	}
-	r = map[string]string{}
-
-	getArgType := func(expr ast.Expr) (_r string) {
-		switch x2 := expr.(type) {
-		case *ast.BasicLit:
-			if x2.Kind == token.INT {
-				_r = "int"
-			} else if x2.Kind == token.STRING {
-				_r = "string"
-			}
-		case *ast.Ident:
-			_r = pass.TypesInfo.Types[expr].Type.String()
-		}
-		return
-	}
-
-	switch x := call.Args[0].(type) {
-	case *ast.CompositeLit:
-		//eg. Where(builder.Eq{"room_id": 235, "uid": 33})
-		for _, elt := range x.Elts {
-			if kv, ok := elt.(*ast.KeyValueExpr); ok {
-				key := ""
-
-				if k, ok1 := kv.Key.(*ast.BasicLit); ok1 {
-					key = strings.ReplaceAll(k.Value, "\"", "")
-				} else {
-					continue
-				}
-				valueType := getArgType(kv.Value)
-
-				if valueType != "" {
-					r[key] = valueType
-				}
-			}
-
-		}
-	case *ast.BasicLit:
-		//eg. Where("room_id = ?", 123)
-		if 2 != len(call.Args) {
-			break
-		}
-		arg0 := x.Value
-
-		inputVars := func(a string) (_r []string) {
-			sli := regexp.MustCompile(`["=<>!\s+]`).Split(a, -1)
-			var sli2 []string
-			for _, item := range sli {
-				if "" != item {
-					sli2 = append(sli2, item)
-				}
-			}
-			for i, item := range sli2 {
-				if "?" == item && i > 0 {
-					if v := sli2[i-1]; v != "" {
-						_r = append(_r, v)
-					}
-				}
-			}
-			return
-		}(arg0)
-
-		if len(inputVars) > 0 && len(inputVars) == len(call.Args)-1 {
-			for i := 1; i < len(call.Args); i++ {
-				key := inputVars[i-1]
-				if typ := getArgType(call.Args[i]); "" != typ {
-					r[key] = typ
-				}
-			}
-		}
-	}
-	return
-}
-
 var expFunc = map[string]bool{
-	"In":    true,
-	"NotIn": true,
-	"Where": true,
-	"And":   true,
-	"Or":    true,
+	"In":      true,
+	"NotIn":   true,
+	"Where":   true,
+	"And":     true,
+	"Or":      true,
+	"ID":      true,
+	"Id":      true,
+	"Cols":    true,
+	"SetExpr": true,
 }
 
-func checkCallObj(pass *analysis.Pass, call *ast.CallExpr) (hasCol bool) {
+func checkCallObj(pass *analysis.Pass, call *ast.CallExpr, checkPreceded bool) (hasCol bool) {
 	//check
 	if selExpr, ok := call.Fun.(*ast.SelectorExpr); ok {
 		funcName := selExpr.Sel.Name
@@ -147,13 +49,80 @@ func checkCallObj(pass *analysis.Pass, call *ast.CallExpr) (hasCol bool) {
 		}
 
 		if _callExp, ok2 := selExpr.X.(*ast.CallExpr); ok2 {
-			hasCol = checkCallObj(pass, _callExp)
+			hasCol = checkCallObj(pass, _callExp, checkPreceded)
+			if hasCol {
+				return
+			}
 		}
 	}
+
+	if !checkPreceded {
+		return
+	}
+
+	// 查看AssignStmt中有没有相关赋值
+	caller := findRootCaller(call)
+	if nil == caller {
+		return
+	}
+	ident, ok := caller.(*ast.Ident)
+	if !ok {
+		return
+	}
+
+	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+
+	nodeFilter := []ast.Node{
+		(*ast.AssignStmt)(nil),
+	}
+
+	inspect.Nodes(nodeFilter, func(n ast.Node, push bool) (proceed bool) {
+		if hasCol {
+			proceed = false
+			return
+		}
+		proceed = true
+		assignStmt := n.(*ast.AssignStmt)
+		if 1 != len(assignStmt.Lhs) {
+			return
+		}
+		assignIdent, ok2 := assignStmt.Lhs[0].(*ast.Ident)
+		if !ok2 {
+			return
+		}
+		if assignIdent.Obj != ident.Obj {
+			return
+		}
+		proceed = true // found one node, but still found all
+		if 1 != len(assignStmt.Rhs) {
+			return
+		}
+		rhsExpr := assignStmt.Rhs[0]
+		if rhsCallExpr, ok3 := rhsExpr.(*ast.CallExpr); ok3 {
+			hasCol = checkCallObj(pass, rhsCallExpr, false)
+		}
+		if hasCol {
+			// 只要找到有列条件，立刻停止查询
+			proceed = false
+		}
+		return
+	})
 	return
 }
 
 var ops = map[string]int{"Update": 1, "Delete": 1}
+
+func findRootCaller(c *ast.CallExpr) ast.Expr {
+	if s, _ok := c.Fun.(*ast.SelectorExpr); _ok {
+		switch _x := s.X.(type) {
+		case *ast.CallExpr:
+			return findRootCaller(_x)
+		case *ast.Ident:
+			return s.X
+		}
+	}
+	return nil
+}
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
@@ -168,6 +137,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 		if selectExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
 			if ops[selectExpr.Sel.Name] == 0 {
+				return
+			}
+			if len(callExpr.Args) != ops[selectExpr.Sel.Name] {
+				// 限定参数个数
 				return
 			}
 		} else {
@@ -194,34 +167,64 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				}
 
 				switch x := pointer.Elem().(type) {
-
-				case *types.Slice:
-					if pointer2, ok2 := x.Elem().(*types.Pointer); ok2 {
-						if named, ok3 := pointer2.Elem().(*types.Named); ok3 {
-							if struct2, ok4 := named.Underlying().(*types.Struct); ok4 {
-								procStruct(struct2)
-							}
-						}
-					}
-
-				case *types.Pointer:
-					if named, ok2 := x.Elem().(*types.Named); ok2 {
-						if struct2, ok3 := named.Underlying().(*types.Struct); ok3 {
-							procStruct(struct2)
-						}
+				case *types.Named:
+					if struct2, ok3 := x.Underlying().(*types.Struct); ok3 {
+						procStruct(struct2)
 					}
 				}
 			}
 			return
 		}
 
+		isXormFunc2 := func(callExpr *ast.CallExpr) (r bool) {
+			if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+				selection := pass.TypesInfo.Selections[selExpr]
+				if nil == selection {
+					return
+				}
+				if strings.Contains(selection.Obj().Pkg().Path(), "xorm") {
+					r = true
+					return
+				}
+			}
+			return
+		}
+
+		//isCalledByXorm := func(callExpr *ast.CallExpr) (r bool) {
+		//	rootCaller := findRootCaller(callExpr)
+		//	if nil == rootCaller {
+		//		return false
+		//	}
+		//
+		//	tav := pass.TypesInfo.Types[rootCaller]
+		//	if pointer, ok2 := tav.Type.(*types.Pointer); ok2 {
+		//		if named, ok3 := pointer.Elem().(*types.Named); ok3 {
+		//			if strings.Contains(named.Obj().Pkg().String(), "xorm") {
+		//				return true
+		//			}
+		//		}
+		//	}
+		//	return false
+		//}
+
+		// 根据参数是否含xorm tag判断是否xorm函数
 		if r := isXormFunc(callExpr); !r {
 			return
 		}
 
-		if !checkCallObj(pass, callExpr) {
+		//// 根据根调用者判断是否xorm包中的
+		//if r := isCalledByXorm(callExpr); !r {
+		//	return
+		//}
+
+		// 根据是否xorm包函数判断
+		if r2 := isXormFunc2(callExpr); !r2 {
+			return
+		}
+
+		if !checkCallObj(pass, callExpr, true) {
 			common.Reportf(pass, "Ziipin-Garra-XORM-Sql-Audit", callExpr.Pos(),
-				fmt.Sprintf(" SQL审核：表update/delete操作没有指定要具体列，会导致全表变更，请核对"))
+				fmt.Sprintf("SQL审核：表update/delete操作没有指定要具体列，会导致全表变更，请核对"))
 		}
 
 	})
