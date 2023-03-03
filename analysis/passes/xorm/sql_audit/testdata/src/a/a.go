@@ -33,6 +33,11 @@ func TestFuncRejectC() {
 	session.Update(&models.Statistic{})
 }
 
+func TestFuncRejectD() {
+	session := dao.Db()
+	session.Update(&models.Statistic{})
+}
+
 func TestFuncPassC() {
 	session := dao.Db().Id(1)
 	session.Update(&models.Statistic{})
