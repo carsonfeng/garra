@@ -32,11 +32,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-var targetFunc = map[string]string{
-	"GetUser":      "svc.User().GetUserMapCache",
-	"GetUserCache": "svc.User().GetUserMapCache",
-}
-
 func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 	if strings.HasPrefix(fn.Name(), "init") {
 		return
@@ -55,20 +50,20 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 						}
 					}
 				}
-				if alloc, ok4 := store.Addr.(*ssa.Alloc); ok4 {
-					if unOp, ok5 := store.Val.(*ssa.UnOp); ok5 {
-						// 一次传递
-						if global, ok6 := unOp.X.(*ssa.Global); ok6 {
-							globalAlloc[alloc] = global
-						}
-						// 二次传递
-						if al2, ok6 := unOp.X.(*ssa.Alloc); ok6 {
-							if globalAlloc[al2] != nil {
-								globalAlloc[alloc] = globalAlloc[al2]
-							}
-						}
-					}
-				}
+				//if alloc, ok4 := store.Addr.(*ssa.Alloc); ok4 {
+				//	if unOp, ok5 := store.Val.(*ssa.UnOp); ok5 {
+				//		// 一次传递
+				//		if global, ok6 := unOp.X.(*ssa.Global); ok6 {
+				//			globalAlloc[alloc] = global
+				//		}
+				//		// 二次传递
+				//		if al2, ok6 := unOp.X.(*ssa.Alloc); ok6 {
+				//			if globalAlloc[al2] != nil {
+				//				globalAlloc[alloc] = globalAlloc[al2]
+				//			}
+				//		}
+				//	}
+				//}
 			}
 		}
 	}

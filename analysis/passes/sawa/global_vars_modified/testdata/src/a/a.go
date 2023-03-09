@@ -27,22 +27,41 @@ func ban0() {
 	defaultGenProtoUserConfig.MyStarFollowSet = map[int]struct{}{}
 }
 
-func ban1() {
+func pass1() {
 	cfg := defaultGenProtoUserConfig
 	cfg.MyBanSet = map[int]struct{}{}
 }
 
-func ban2() {
+func pass2() {
 	cfg := defaultGenProtoUserConfig
 	cfg2 := cfg
 	cfg2.MyBanSet = map[int]struct{}{}
 }
 
-func modifyFunc(cfg *genProtoUserConfig) {
-	cfg.MyLikeSet = map[int]struct{}{}
+func ban1() {
+	cfg := &defaultGenProtoUserConfig
+	cfg.MyBanSet = map[int]struct{}{}
+}
+
+func ban2() {
+	cfg := &defaultGenProtoUserConfig
+	cfg2 := cfg
+	cfg2.MyBanSet = map[int]struct{}{}
 }
 
 func ban3() {
-	cfg := defaultGenProtoUserConfig
-	modifyFunc(&cfg)
+	cfg := &defaultGenProtoUserConfig
+	cfg2 := cfg
+	var cfg3 *genProtoUserConfig
+	cfg3 = cfg2
+	cfg3.MyBanSet = map[int]struct{}{}
 }
+
+//func modifyFunc(cfg *genProtoUserConfig) {
+//	cfg.MyLikeSet = map[int]struct{}{}
+//}
+//
+//func ban3() {
+//	cfg := defaultGenProtoUserConfig
+//	modifyFunc(&cfg)
+//}
